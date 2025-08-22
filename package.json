@@ -1,0 +1,29 @@
+{
+  "name": "copy-text-between-frames",
+  "version": "1.0.0",
+  "description": "A Figma plugin for copying text content between frames with intelligent mapping",
+  "main": "code.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "dev": "tsc && figma build"
+  },
+  "keywords": [
+    "figma",
+    "plugin",
+    "text",
+    "copy",
+    "paste",
+    "design"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.82.0",
+    "typescript": "^5.0.0"
+  },
+  "figma": {
+    "id": "copy-text-between-frames",
+    "name": "Copy Text Between Frames"
+  }
+}
