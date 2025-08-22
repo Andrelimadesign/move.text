@@ -1,12 +1,13 @@
 {
   "name": "copy-text-between-frames",
-  "version": "1.0.0",
-  "description": "A Figma plugin for copying text content between frames with intelligent mapping",
+  "version": "1.1.0",
+  "description": "An enhanced Figma plugin for intelligently copying text content between frames with advanced mapping algorithms, progress tracking, and better UX",
   "main": "code.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "dev": "tsc && figma build"
+    "dev": "tsc && figma build",
+    "clean": "rm -f code.js"
   },
   "keywords": [
     "figma",
@@ -14,9 +15,12 @@
     "text",
     "copy",
     "paste",
-    "design"
+    "design",
+    "typography",
+    "content-management",
+    "design-systems"
   ],
-  "author": "Your Name",
+  "author": "Andre Lima",
   "license": "MIT",
   "devDependencies": {
     "@figma/plugin-typings": "^1.82.0",
@@ -24,6 +28,14 @@
   },
   "figma": {
     "id": "copy-text-between-frames",
-    "name": "Copy Text Between Frames"
-  }
+    "name": "Copy Text Between Frames (Enhanced)"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Andrelimadesign/move.text.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Andrelimadesign/move.text/issues"
+  },
+  "homepage": "https://github.com/Andrelimadesign/move.text#readme"
 }

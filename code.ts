@@ -1,25 +1,36 @@
 // Figma Plugin: Copy Text Between Frames
-// Main plugin logic for copying and pasting text between frames
+// Enhanced version with better mapping algorithms and progress reporting
 
-// Data structures for text copying
+// Enhanced data structures for text copying
 interface CopyPayload {
   sourceFrameId: string;
   sourceFrameName: string;
   capturedAt: number;
   items: TextItem[];
+  frameStructure: FrameStructure;
 }
 
 interface TextItem {
-  path: number[];     // Child index path from frame root
-  name?: string;      // Node name for fallback matching
-  characters: string; // Plain text content
+  path: number[];           // Child index path from frame root
+  name?: string;            // Node name for fallback matching
+  characters: string;       // Plain text content
+  fontSize?: number;        // Font size for better matching
+  fontName?: FontName;      // Font family for better matching
+  textStyleId?: string;     // Text style ID if available
+}
+
+interface FrameStructure {
+  nodeCount: number;
+  textNodeCount: number;
+  maxDepth: number;
+  layerNames: string[];
 }
 
 // Global storage for copy data
 let copyPayload: CopyPayload | null = null;
 
-// Font loading utility
-async function ensureFontsLoaded(textNodes: TextNode[]): Promise<void> {
+// Enhanced font loading utility with progress reporting
+async function ensureFontsLoaded(textNodes: TextNode[], onProgress?: (percent: number) => void): Promise<void> {
   console.log("🔤 Loading fonts for", textNodes.length, "text nodes...");
   
   const uniqueFonts = new Set<string>();
@@ -31,11 +42,24 @@ async function ensureFontsLoaded(textNodes: TextNode[]): Promise<void> {
   
   console.log("🔤 Unique fonts found:", uniqueFonts.size);
   
+  if (uniqueFonts.size === 0) {
+    console.log("ℹ️ No fonts to load");
+    return;
+  }
+  
+  const fontArray = Array.from(uniqueFonts);
   const fontPromises: Promise<void>[] = [];
-  uniqueFonts.forEach(fontString => {
+  
+  fontArray.forEach((fontString, index) => {
     try {
       const fontName = JSON.parse(fontString);
-      fontPromises.push(figma.loadFontAsync(fontName));
+      const promise = figma.loadFontAsync(fontName).then(() => {
+        if (onProgress) {
+          const percent = Math.round(((index + 1) / fontArray.length) * 100);
+          onProgress(percent);
+        }
+      });
+      fontPromises.push(promise);
     } catch (error) {
       console.log("⚠️ Could not parse font:", fontString);
     }
@@ -44,55 +68,73 @@ async function ensureFontsLoaded(textNodes: TextNode[]): Promise<void> {
   if (fontPromises.length > 0) {
     await Promise.all(fontPromises);
     console.log("✅ All fonts loaded successfully");
-  } else {
-    console.log("ℹ️ No fonts to load");
   }
 }
 
-// Selection validation
+// Enhanced selection validation with better error messages
 function validateSingleFrameSelection(): FrameNode {
   console.log("🔍 Validating selection...");
   const selection = figma.currentPage.selection;
   console.log("Selection length:", selection.length);
   
-  if (selection.length !== 1) {
-    throw new Error("Please select exactly one frame");
+  if (selection.length === 0) {
+    throw new Error("Please select a frame to work with");
   }
   
-  console.log("Selected item type:", selection[0].type);
-  if (selection[0].type !== "FRAME") {
-    throw new Error("Selected item must be a Frame");
+  if (selection.length > 1) {
+    throw new Error("Please select only one frame at a time");
+  }
+  
+  const selectedNode = selection[0];
+  console.log("Selected item type:", selectedNode.type);
+  
+  if (selectedNode.type !== "FRAME") {
+    throw new Error("Selected item must be a Frame. Please select a frame and try again.");
   }
   
   console.log("✅ Selection validated successfully");
-  return selection[0] as FrameNode;
+  return selectedNode as FrameNode;
 }
 
-// Text node indexing with DFS traversal
+// Enhanced text node indexing with better structure analysis
 function indexTextNodes(frameNode: FrameNode): {
   items: TextItem[];
   nodes: TextNode[];
+  structure: FrameStructure;
 } {
   console.log("🔍 Indexing text nodes in frame:", frameNode.name);
   const items: TextItem[] = [];
   const nodes: TextNode[] = [];
+  const layerNames: string[] = [];
+  let maxDepth = 0;
+  let nodeCount = 0;
   
   // Use iterative DFS to avoid recursion limits
-  const stack: Array<{node: SceneNode, path: number[]}> = [
-    {node: frameNode, path: []}
+  const stack: Array<{node: SceneNode, path: number[], depth: number}> = [
+    {node: frameNode, path: [], depth: 0}
   ];
   
   while (stack.length > 0) {
-    const {node, path} = stack.pop()!;
+    const {node, path, depth} = stack.pop()!;
+    nodeCount++;
+    maxDepth = Math.max(maxDepth, depth);
     
     if (node.type === "TEXT") {
       console.log("📝 Found text node:", node.name, "at path:", path);
-      items.push({
+      
+      // Extract additional properties for better matching
+      const textItem: TextItem = {
         path: [...path],
         name: node.name,
-        characters: node.characters
-      });
+        characters: node.characters,
+        fontSize: node.fontSize as number,
+        fontName: node.fontName as FontName,
+        textStyleId: typeof node.textStyleId === 'string' ? node.textStyleId : undefined
+      };
+      
+      items.push(textItem);
       nodes.push(node);
+      layerNames.push(node.name);
     }
     
     if ("children" in node) {
@@ -100,86 +142,190 @@ function indexTextNodes(frameNode: FrameNode): {
       for (let i = node.children.length - 1; i >= 0; i--) {
         stack.push({
           node: node.children[i],
-          path: [...path, i]
+          path: [...path, i],
+          depth: depth + 1
         });
       }
     }
   }
   
-  console.log(`✅ Indexed ${items.length} text nodes`);
-  return {items, nodes};
+  const structure: FrameStructure = {
+    nodeCount,
+    textNodeCount: items.length,
+    maxDepth,
+    layerNames
+  };
+  
+  console.log(`✅ Indexed ${items.length} text nodes out of ${nodeCount} total nodes`);
+  console.log(`📊 Frame structure: max depth ${maxDepth}, layer names: ${layerNames.length}`);
+  
+  return {items, nodes, structure};
 }
 
-// Text mapping algorithm with fallback strategies
+// Enhanced text mapping algorithm with multiple strategies and scoring
 async function mapTextNodes(
   sourceItems: TextItem[],
   targetItems: TextItem[],
-  targetNodes: TextNode[]
-): Promise<{mapped: number; skipped: number}> {
-  console.log("🔄 Mapping text nodes...");
+  targetNodes: TextNode[],
+  onProgress?: (percent: number) => void
+): Promise<{mapped: number; skipped: number; details: string[]}> {
+  console.log("🔄 Mapping text nodes with enhanced algorithm...");
   
   // Ensure fonts are loaded before attempting to modify text
-  await ensureFontsLoaded(targetNodes);
+  await ensureFontsLoaded(targetNodes, onProgress);
   
   let mapped = 0;
   let skipped = 0;
   const usedIndices = new Set<number>();
+  const details: string[] = [];
   
-  for (const sourceItem of sourceItems) {
-    let targetIndex = -1;
+  // Create a scoring matrix for better matching
+  const createScoringMatrix = () => {
+    const matrix: Array<{sourceIndex: number, targetIndex: number, score: number}[]> = [];
     
-    // Strategy 1: Path matching (exact structure)
-    targetIndex = targetItems.findIndex((item, idx) =>
-      !usedIndices.has(idx) &&
-      item.path.length === sourceItem.path.length &&
-      item.path.every((val, i) => val === sourceItem.path[i])
-    );
+    sourceItems.forEach((sourceItem, sourceIndex) => {
+      const scores: Array<{sourceIndex: number, targetIndex: number, score: number}> = [];
+      
+      targetItems.forEach((targetItem, targetIndex) => {
+        if (usedIndices.has(targetIndex)) return;
+        
+        let score = 0;
+        
+        // Strategy 1: Path matching (exact structure) - highest priority
+        if (sourceItem.path.length === targetItem.path.length &&
+            sourceItem.path.every((val, i) => val === targetItem.path[i])) {
+          score += 1000;
+        }
+        
+        // Strategy 2: Name matching (exact name)
+        if (sourceItem.name && sourceItem.name === targetItem.name) {
+          score += 500;
+        }
+        
+        // Strategy 3: Font matching (same font family and size)
+        if (sourceItem.fontName && targetItem.fontName &&
+            sourceItem.fontSize && targetItem.fontSize) {
+          if (sourceItem.fontName.family === targetItem.fontName.family) {
+            score += 200;
+            if (sourceItem.fontSize === targetItem.fontSize) {
+              score += 100;
+            }
+          }
+        }
+        
+        // Strategy 4: Text style matching
+        if (sourceItem.textStyleId && sourceItem.textStyleId === targetItem.textStyleId) {
+          score += 300;
+        }
+        
+        // Strategy 5: Content similarity (partial text match)
+        if (sourceItem.characters.length > 10 && targetItem.characters.length > 10) {
+          const sourceWords = sourceItem.characters.toLowerCase().split(/\s+/);
+          const targetWords = targetItem.characters.toLowerCase().split(/\s+/);
+          const commonWords = sourceWords.filter(word => targetWords.includes(word));
+          score += commonWords.length * 10;
+        }
+        
+        // Strategy 6: Position-based scoring (closer positions get higher scores)
+        const pathSimilarity = calculatePathSimilarity(sourceItem.path, targetItem.path);
+        score += pathSimilarity * 50;
+        
+        if (score > 0) {
+          scores.push({sourceIndex, targetIndex, score});
+        }
+      });
+      
+      // Sort by score (highest first)
+      scores.sort((a, b) => b.score - a.score);
+      matrix.push(scores);
+    });
     
-    // Strategy 2: Name matching
-    if (targetIndex === -1 && sourceItem.name) {
-      targetIndex = targetItems.findIndex((item, idx) =>
-        !usedIndices.has(idx) && item.name === sourceItem.name
-      );
+    return matrix;
+  };
+  
+  const scoringMatrix = createScoringMatrix();
+  
+  // Process mappings based on scores
+  for (let i = 0; i < scoringMatrix.length; i++) {
+    const scores = scoringMatrix[i];
+    const sourceItem = sourceItems[i];
+    
+    if (scores.length === 0) {
+      details.push(`⚠️ No suitable target found for: "${sourceItem.characters.substring(0, 30)}..."`);
+      skipped++;
+      continue;
     }
     
-    // Strategy 3: Order fallback (next available)
+    // Find the best available target
+    let targetIndex = -1;
+    for (const score of scores) {
+      if (!usedIndices.has(score.targetIndex)) {
+        targetIndex = score.targetIndex;
+        break;
+      }
+    }
+    
     if (targetIndex === -1) {
-      targetIndex = targetItems.findIndex((_, idx) => !usedIndices.has(idx));
+      details.push(`⚠️ All suitable targets already used for: "${sourceItem.characters.substring(0, 30)}..."`);
+      skipped++;
+      continue;
     }
     
     // Apply the mapping
-    if (targetIndex !== -1) {
-      const targetNode = targetNodes[targetIndex];
-      try {
-        // Check if the node is locked or inaccessible
-        if (targetNode.locked) {
-          console.log(`⚠️ Skipping locked text node: ${targetNode.name}`);
-          skipped++;
-          continue;
-        }
-        
-        // Try to set the characters
-        targetNode.characters = sourceItem.characters;
-        usedIndices.add(targetIndex);
-        mapped++;
-        console.log(`✅ Mapped text: "${sourceItem.characters.substring(0, 30)}..."`);
-      } catch (error) {
-        console.log(`❌ Failed to map text:`, error);
+    const targetNode = targetNodes[targetIndex];
+    try {
+      // Check if the node is locked or inaccessible
+      if (targetNode.locked) {
+        details.push(`⚠️ Skipping locked text node: ${targetNode.name}`);
         skipped++;
+        continue;
       }
-    } else {
-      console.log(`⚠️ No target found for text: "${sourceItem.characters.substring(0, 30)}..."`);
+      
+      // Try to set the characters
+      targetNode.characters = sourceItem.characters;
+      usedIndices.add(targetIndex);
+      mapped++;
+      
+      const score = scores.find(s => s.targetIndex === targetIndex)?.score || 0;
+      details.push(`✅ Mapped text (score: ${score}): "${sourceItem.characters.substring(0, 30)}..."`);
+      
+      // Report progress
+      if (onProgress) {
+        const percent = Math.round(((i + 1) / scoringMatrix.length) * 100);
+        onProgress(percent);
+      }
+      
+    } catch (error) {
+      details.push(`❌ Failed to map text: ${error}`);
       skipped++;
     }
   }
   
   console.log(`✅ Mapping complete: ${mapped} mapped, ${skipped} skipped`);
-  return {mapped, skipped};
+  return {mapped, skipped, details};
 }
 
-// Message handlers
-console.log("🚀 Plugin starting...");
-figma.showUI(__html__, {width: 320, height: 200});
+// Helper function to calculate path similarity
+function calculatePathSimilarity(path1: number[], path2: number[]): number {
+  if (path1.length === 0 || path2.length === 0) return 0;
+  
+  const minLength = Math.min(path1.length, path2.length);
+  let similarity = 0;
+  
+  for (let i = 0; i < minLength; i++) {
+    if (path1[i] === path2[i]) {
+      similarity += 1;
+    } else {
+      break; // Stop at first mismatch
+    }
+  }
+  
+  return similarity / Math.max(path1.length, path2.length);
+}
+
+// Enhanced message handlers with progress reporting
+console.log("🚀 Enhanced plugin starting...");
+figma.showUI(__html__, {width: 380, height: 280});
 
 figma.ui.onmessage = async (msg) => {
   console.log("📨 Received message:", msg);
@@ -211,42 +357,44 @@ figma.ui.onmessage = async (msg) => {
 };
 
 async function handleCopy(): Promise<void> {
-  console.log("📋 Starting copy operation...");
+  console.log("📋 Starting enhanced copy operation...");
   
   try {
     const frame = validateSingleFrameSelection();
     console.log("📋 Frame selected:", frame.name);
     
-    const {items} = indexTextNodes(frame);
+    const {items, structure} = indexTextNodes(frame);
     console.log("📋 Text items extracted:", items.length);
     
     const payload: CopyPayload = {
       sourceFrameId: frame.id,
       sourceFrameName: frame.name,
       capturedAt: Date.now(),
-      items
+      items,
+      frameStructure: structure
     };
     
     // Store in global variable and client storage
     copyPayload = payload;
     await figma.clientStorage.setAsync("copyPayload", payload);
-    console.log("📋 Copy payload stored successfully");
+    console.log("📋 Enhanced copy payload stored successfully");
     
     figma.ui.postMessage({
       type: "COPY_SUCCESS",
       frameName: frame.name,
-      textNodeCount: items.length
+      textNodeCount: items.length,
+      structure: structure
     });
     
-    console.log("✅ Copy operation completed successfully");
+    console.log("✅ Enhanced copy operation completed successfully");
   } catch (error) {
-    console.error("❌ Copy operation failed:", error);
+    console.error("❌ Enhanced copy operation failed:", error);
     throw error;
   }
 }
 
 async function handlePaste(): Promise<void> {
-  console.log("📝 Starting paste operation...");
+  console.log("📝 Starting enhanced paste operation...");
   
   try {
     const frame = validateSingleFrameSelection();
@@ -268,18 +416,30 @@ async function handlePaste(): Promise<void> {
     const {items: targetItems, nodes: targetNodes} = indexTextNodes(frame);
     console.log("📝 Target frame has", targetItems.length, "text nodes");
     
-    const {mapped, skipped} = await mapTextNodes(payload.items, targetItems, targetNodes);
+    // Report progress during mapping
+    const {mapped, skipped, details} = await mapTextNodes(
+      payload.items, 
+      targetItems, 
+      targetNodes,
+      (percent) => {
+        figma.ui.postMessage({
+          type: "PROGRESS",
+          percent
+        });
+      }
+    );
     
     figma.ui.postMessage({
       type: "PASTE_SUCCESS",
       mapped,
       skipped,
-      total: payload.items.length
+      total: payload.items.length,
+      details
     });
     
-    console.log("✅ Paste operation completed successfully");
+    console.log("✅ Enhanced paste operation completed successfully");
   } catch (error) {
-    console.error("❌ Paste operation failed:", error);
+    console.error("❌ Enhanced paste operation failed:", error);
     throw error;
   }
 }
@@ -301,4 +461,4 @@ async function handleClear(): Promise<void> {
   }
 }
 
-console.log("✅ Plugin initialization complete");
+console.log("✅ Enhanced plugin initialization complete");
