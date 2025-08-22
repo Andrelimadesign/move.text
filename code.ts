@@ -286,7 +286,8 @@ async function mapTextNodes(
       usedIndices.add(targetIndex);
       mapped++;
       
-      const score = scores.find(s => s.targetIndex === targetIndex)?.score || 0;
+             const scoreMatch = scores.find(s => s.targetIndex === targetIndex);
+       const score = scoreMatch ? scoreMatch.score : 0;
       details.push(`✅ Mapped text (score: ${score}): "${sourceItem.characters.substring(0, 30)}..."`);
       
       // Report progress
