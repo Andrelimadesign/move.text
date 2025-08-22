@@ -10,12 +10,31 @@ interface CopyPayload {
   frameStructure: FrameStructure;
 }
 
+// Serializable version for storage
+interface SerializableCopyPayload {
+  sourceFrameId: string;
+  sourceFrameName: string;
+  capturedAt: number;
+  items: SerializableTextItem[];
+  frameStructure: FrameStructure;
+}
+
 interface TextItem {
   path: number[];           // Child index path from frame root
   name?: string;            // Node name for fallback matching
   characters: string;       // Plain text content
   fontSize?: number;        // Font size for better matching
   fontName?: FontName;      // Font family for better matching
+  textStyleId?: string;     // Text style ID if available
+}
+
+interface SerializableTextItem {
+  path: number[];           // Child index path from frame root
+  name?: string;            // Node name for fallback matching
+  characters: string;       // Plain text content
+  fontSize?: number;        // Font size for better matching
+  fontFamily?: string;      // Font family name as string
+  fontStyle?: string;       // Font style as string
   textStyleId?: string;     // Text style ID if available
 }
 
@@ -324,6 +343,53 @@ function calculatePathSimilarity(path1: number[], path2: number[]): number {
   return similarity / Math.max(path1.length, path2.length);
 }
 
+// Helper functions for data serialization
+function serializeTextItem(item: TextItem): SerializableTextItem {
+  return {
+    path: [...item.path],
+    name: item.name,
+    characters: item.characters,
+    fontSize: item.fontSize,
+    fontFamily: item.fontName?.family,
+    fontStyle: item.fontName?.style,
+    textStyleId: item.textStyleId
+  };
+}
+
+function deserializeTextItem(item: SerializableTextItem): TextItem {
+  return {
+    path: [...item.path],
+    name: item.name,
+    characters: item.characters,
+    fontSize: item.fontSize,
+    fontName: item.fontFamily && item.fontStyle ? {
+      family: item.fontFamily,
+      style: item.fontStyle
+    } : undefined,
+    textStyleId: item.textStyleId
+  };
+}
+
+function serializePayload(payload: CopyPayload): SerializableCopyPayload {
+  return {
+    sourceFrameId: payload.sourceFrameId,
+    sourceFrameName: payload.sourceFrameName,
+    capturedAt: payload.capturedAt,
+    items: payload.items.map(serializeTextItem),
+    frameStructure: payload.frameStructure
+  };
+}
+
+function deserializePayload(serializedPayload: SerializableCopyPayload): CopyPayload {
+  return {
+    sourceFrameId: serializedPayload.sourceFrameId,
+    sourceFrameName: serializedPayload.sourceFrameName,
+    capturedAt: serializedPayload.capturedAt,
+    items: serializedPayload.items.map(deserializeTextItem),
+    frameStructure: serializedPayload.frameStructure
+  };
+}
+
 // Enhanced message handlers with progress reporting
 console.log("🚀 Enhanced plugin starting...");
 figma.showUI(__html__, {width: 380, height: 280});
@@ -377,8 +443,22 @@ async function handleCopy(): Promise<void> {
     
     // Store in global variable and client storage
     copyPayload = payload;
-    await figma.clientStorage.setAsync("copyPayload", payload);
-    console.log("📋 Enhanced copy payload stored successfully");
+    
+    try {
+      const serializedPayload = serializePayload(payload);
+      console.log("📋 Serialized payload for storage:", {
+        itemCount: serializedPayload.items.length,
+        hasFontData: serializedPayload.items.some(item => item.fontFamily),
+        structure: serializedPayload.frameStructure
+      });
+      
+      await figma.clientStorage.setAsync("copyPayload", serializedPayload);
+      console.log("📋 Enhanced copy payload stored successfully");
+    } catch (storageError) {
+      console.error("❌ Failed to store payload:", storageError);
+      // Continue with global variable only - user can still paste in this session
+      console.log("⚠️ Continuing with global storage only");
+    }
     
     figma.ui.postMessage({
       type: "COPY_SUCCESS",
@@ -405,7 +485,15 @@ async function handlePaste(): Promise<void> {
     let payload = copyPayload;
     if (!payload) {
       console.log("📝 No global payload, checking storage...");
-      payload = await figma.clientStorage.getAsync("copyPayload") as CopyPayload | null;
+      try {
+        const storedPayload = await figma.clientStorage.getAsync("copyPayload") as SerializableCopyPayload | null;
+        if (storedPayload) {
+          payload = deserializePayload(storedPayload);
+        }
+      } catch (storageError) {
+        console.log("⚠️ Error reading from storage:", storageError);
+        // Continue with null payload, will show appropriate error
+      }
     }
     
     if (!payload) {
