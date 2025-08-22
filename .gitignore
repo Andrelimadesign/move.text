@@ -9,7 +9,6 @@ yarn-error.log*
 *.js.map
 
 # Figma plugin files (these are generated)
-code.js
 
 # Environment files
 .env

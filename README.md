@@ -1,4 +1,4 @@
-# Copy Text Between Frames (Enhanced) 🚀
+# Move.Text (Enhanced) 🚀
 
 A powerful Figma plugin that intelligently copies text content between frames using advanced mapping algorithms, progress tracking, and an improved user experience.
 

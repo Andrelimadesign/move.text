@@ -5,10 +5,74 @@
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 12px;
-      padding: 16px;
+      padding: 12px;
       margin: 0;
       background: #ffffff;
       color: #333333;
+      position: relative;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    
+
+    
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      padding: 16px 0;
+    }
+    
+    .app-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .app-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    .app-name {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #00433D;
+      letter-spacing: -0.02em;
+    }
+    
+    .logo {
+      text-align: right;
+      margin: 20px 0 0 0;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    
+    .logo-svg {
+      height: 13px;
+      width: 56px;
+      max-width: 56px;
+    }
+    
+    .instructions {
+      text-align: center;
+      margin: 0 0 16px 0;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+      color: #00433D;
+      line-height: 1.4;
+    }
+    
+    .instructions p {
+      margin: 3px 0;
+      font-size: 11px;
     }
     
     h3 {
@@ -21,25 +85,14 @@
       gap: 8px;
     }
     
-    .header-icon {
-      width: 16px;
-      height: 16px;
-      background: linear-gradient(135deg, #18a0fb, #4caf50);
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 10px;
-      font-weight: bold;
-    }
+
     
     button {
       width: 100%;
-      height: 36px;
-      margin-bottom: 8px;
+      height: 32px;
+      margin-bottom: 6px;
       border: 1px solid #e5e5e5;
-      border-radius: 8px;
+      border-radius: 16px;
       background: #ffffff;
       cursor: pointer;
       font-size: 12px;
@@ -74,6 +127,20 @@
       box-shadow: none;
     }
     
+    #clearBtn:active {
+      background: transparent;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    #clearBtn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: transparent;
+      transform: none;
+      box-shadow: none;
+    }
+    
     .loading {
       position: relative;
     }
@@ -96,42 +163,60 @@
     }
     
     #copyBtn {
-      background: #18a0fb;
-      color: white;
-      border-color: #18a0fb;
+      background: #ffffff;
+      color: #00433D;
+      border: 1px solid #00433D;
     }
     
     #copyBtn:hover {
-      background: #0d8ce0;
-      border-color: #0d8ce0;
+      background: #f5f5f5;
+      border-color: #003329;
+    }
+    
+    #copyBtn:disabled {
+      background: #f8f8f8;
+      color: #999999;
+      border-color: #e0e0e0;
+      cursor: not-allowed;
     }
     
     #pasteBtn {
-      background: #4caf50;
+      background: #00433D;
       color: white;
-      border-color: #4caf50;
+      border-color: #00433D;
     }
     
     #pasteBtn:hover {
-      background: #45a049;
-      border-color: #45a049;
+      background: #003329;
+      border-color: #003329;
     }
     
     #clearBtn {
-      background: #ff6b6b;
-      color: white;
-      border-color: #ff6b6b;
+      background: transparent;
+      color: #666666;
+      border: none;
+      text-decoration: underline;
+      font-size: 11px;
+      height: auto;
+      margin: 0;
+      padding: 3px 0;
+      width: auto;
+      display: block;
+      text-align: center;
     }
     
     #clearBtn:hover {
-      background: #ff5252;
-      border-color: #ff5252;
+      background: transparent;
+      color: #333333;
+      text-decoration: none;
+      transform: none;
+      box-shadow: none;
     }
     
     .button-group {
       display: flex;
       gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
     
     .button-group button {
@@ -140,15 +225,18 @@
     }
     
     #status {
-      margin-top: 16px;
-      padding: 12px;
+      margin-top: 12px;
+      padding: 16px;
       background: #f8f9fa;
-      border-radius: 8px;
+      border-radius: 16px;
       font-size: 11px;
-      min-height: 40px;
       border-left: 4px solid #e9ecef;
       line-height: 1.4;
       transition: all 0.3s ease;
+    }
+    
+    .status-content {
+      margin-bottom: 12px;
     }
     
     .error {
@@ -164,7 +252,7 @@
     }
     
     .info {
-      color: #2b6cb0;
+      color: #8E4EC6;
       background: #ebf8ff;
       border-left-color: #63b3ed;
     }
@@ -180,13 +268,13 @@
       height: 4px;
       background: #e9ecef;
       border-radius: 2px;
-      margin-top: 8px;
+      margin-top: 6px;
       overflow: hidden;
     }
     
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #18a0fb, #4caf50);
+      background: #00433D;
       border-radius: 2px;
       transition: width 0.3s ease;
       width: 0%;
@@ -195,9 +283,10 @@
     .stats {
       display: flex;
       gap: 16px;
-      margin-top: 12px;
+      margin: 12px 0;
       font-size: 10px;
       color: #666;
+      justify-content: center;
     }
     
     .stat-item {
@@ -239,49 +328,94 @@
     .tooltip:hover::after {
       opacity: 1;
     }
+    
+
   </style>
 </head>
 <body>
-  <h3>
-    <div class="header-icon">T</div>
-    Copy Text Between Frames
-  </h3>
+  <div class="app-header">
+    <div class="app-icon">
+      <svg width="24" height="24" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#clip0_2305_2891)">
+          <path d="M257.878 0H42.1222C18.8588 0 0 18.8588 0 42.1222V257.878C0 281.141 18.8588 300 42.1222 300H257.878C281.141 300 300 281.141 300 257.878V42.1222C300 18.8588 281.141 0 257.878 0Z" fill="#00433D"/>
+          <path d="M167.71 37.4305H132.285V262.567H167.71V37.4305Z" fill="#D8FF4F"/>
+        </g>
+        <defs>
+          <clipPath id="clip0_2305_2891">
+            <rect width="300" height="300" fill="white"/>
+          </clipPath>
+        </defs>
+      </svg>
+    </div>
+    <div class="app-name">Move.Text</div>
+  </div>
+  
+  <div class="instructions">
+    <p>1- Select frame → click "Copy text from frame"</p>
+    <p>2- Select target frame → click "Paste"</p>
+  </div>
   
   <div class="button-group">
     <button id="copyBtn" data-tooltip="Copy text from selected frame">
-      📋 Copy
+      Copy text from frame
     </button>
     <button id="pasteBtn" data-tooltip="Paste text into selected frame">
-      📝 Paste
+      Paste
     </button>
   </div>
   
-  <button id="clearBtn" data-tooltip="Clear stored copy data">
-    🗑️ Clear
-  </button>
-  
   <div id="status" class="info">
-    Select a frame and click "Copy" to start.
+    <div class="status-content">
+      Select a frame and click "Copy" to start.
+    </div>
+    
+    <div class="stats" id="stats" style="display: none;">
+      <div class="stat-item">
+        <div class="stat-value" id="copiedCount">0</div>
+        <div>Copied</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="pastedCount">0</div>
+        <div>Pasted</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="skippedCount">0</div>
+        <div>Skipped</div>
+      </div>
+    </div>
+    
+    <button id="clearBtn" data-tooltip="Clear stored copy data">
+      Clear current selection
+    </button>
   </div>
   
-  <div class="progress-bar" id="progressBar" style="display: none;">
+    <div class="progress-bar" id="progressBar" style="display: none;">
     <div class="progress-fill" id="progressFill"></div>
   </div>
   
-  <div class="stats" id="stats" style="display: none;">
-    <div class="stat-item">
-      <div class="stat-value" id="copiedCount">0</div>
-      <div>Copied</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="pastedCount">0</div>
-      <div>Pasted</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="skippedCount">0</div>
-      <div>Skipped</div>
-    </div>
+  <div class="logo">
+    <svg width="56" height="13" viewBox="0 0 352 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+      <g clip-path="url(#clip0_8905_69806)">
+        <path d="M79.7073 18.3195V61.7537H89.1341V18.3195H79.7073Z" fill="#00433D"/>
+        <path d="M119.693 17.8268C112.483 17.8268 107.4 20.9415 104.615 26.8415L103.468 18.3195H95.6829V61.7537H105.351V40.2805C105.351 26.8488 109.659 27.2415 119.693 27.2512C120.102 27.2512 121.332 27.3049 121.332 27.3049V17.8268H119.693Z" fill="#00433D"/>
+        <path d="M149.929 17.0073C143.046 17.0073 137.393 20.3683 134.524 25.4488L133.541 18.3195H125.756V79.8512H135.507V55.6878C138.459 60.1951 143.62 62.9829 149.849 62.9829C161.402 62.9829 169.517 53.4756 169.517 39.7903C169.517 26.1049 161.402 17.0073 149.929 17.0073ZM147.717 54.7049C137.249 54.7049 135.507 52.8024 135.507 39.5439C135.507 26.2854 138.627 25.3073 147.637 25.3073C157.89 25.3073 159.6 27.0098 159.6 39.7903C159.6 52.5707 157.89 54.7049 147.717 54.7049Z" fill="#00433D"/>
+        <path d="M197.217 17.0097C192.954 17.0097 189.066 18.2146 186.146 20.4244V27.4829C187.259 26.3488 189.598 25.3073 192.805 25.3073C200.271 25.3073 202.795 27.5098 202.871 38.0219V61.7585H212.541V32.8439C212.541 23.0927 206.478 17.0073 197.217 17.0073V17.0097ZM183.622 37.4951H183.615V22.8463H183.612V0.148773H173.941V61.761H183.612V41.6463C183.612 40.2024 183.602 38.8122 183.622 37.4951Z" fill="#00433D"/>
+        <path d="M239.256 17.0073C226.554 17.0073 216.966 25.4488 216.966 39.6268C216.966 53.0658 225.161 62.9829 239.256 62.9829C252.205 62.9829 261.466 54.2951 261.466 39.6268C261.466 26.8415 253.271 17.0073 239.256 17.0073ZM239.256 54.7049C229.302 54.7049 226.8 53.6317 226.8 39.6268C226.8 25.6219 229.334 25.3049 239.256 25.3049C249.178 25.3049 251.632 26.3219 251.632 39.6268C251.632 52.9317 249.229 54.7049 239.256 54.7049Z" fill="#00433D"/>
+        <path d="M22.0561 8.47561H30.7878V0.314636H21.4024C12.4244 0.314636 7.60976 4.72195 7.60976 12.8829V18.3195H0.019516V25.9927H7.60976V61.7293H17.2415V25.9927H29.8098V18.3195H17.2415V13.5366C17.2415 10.2707 18.9537 8.47561 22.0561 8.47561Z" fill="#00433D"/>
+        <path d="M89.1341 0.290253H79.7244V9.94391H89.1341V0.290253Z" fill="#00433D"/>
+        <path d="M289.163 17.0098C282.69 17.0098 277.2 20.2049 274.495 24.7122L273.676 18.3195H265.89V61.7537H275.561V37.0025C275.561 25.2634 281 25.3073 285.483 25.3073C291.544 25.3073 294.82 27.1537 294.82 37.4951V61.7537H304.488V32.9903C304.488 23.2366 298.424 17.0098 289.163 17.0098Z" fill="#00433D"/>
+        <path d="M318.583 42.0024H351.2V39.7073C350.954 25.6122 342.759 17.0073 330.466 17.0073C318.173 17.0073 308.912 25.8585 308.912 40.2C308.912 53.4756 318.01 62.9829 331.285 62.9829C341.529 62.9829 348.822 57.3268 351.037 47.9854H341.612C340.583 53.5366 337.893 54.7024 330.578 54.7024C327.593 54.7024 325.3 54.5659 323.561 53.9781H323.559C320.063 52.8 318.79 49.7707 318.583 42.122C318.583 42.1146 318.583 42.1098 318.583 42.1049V42.0024ZM318.685 35.3049C319.278 25.6 323.22 25.6 329.3 25.3195C329.424 25.3146 330.198 25.3 330.466 25.3073C337.107 25.5122 340.729 25.9122 341.202 35.3049H318.685Z" fill="#00433D"/>
+        <path d="M30.8049 49.6829C30.8878 39.5293 40.9585 37.4 49.3951 36.4171C55.9463 35.6805 61.1024 35.4268 60.861 31.9951C60.5488 27.5683 57.9171 25.4073 51.9341 25.3073C46.1488 25.2098 42.5854 25.9659 41.5341 32.5683H31.7902C32.6902 23.3976 40.8805 17.0098 52.1 17.0098C63.3195 17.0098 70.2805 23.3976 70.2805 32.6512V52.3049C70.2805 53.5342 70.9366 54.1878 72.4098 54.1878H74.7854V61.722H70.2C65.778 61.722 63.0756 59.9195 62.339 56.6439C62.1756 56.2342 62.0122 55.661 61.9293 55.1707C59.3902 59.839 54.6415 62.9829 47.2707 62.9829C37.2805 62.9829 30.7293 57.7903 30.8098 49.6829H30.8049ZM61.3293 45.4342C61.4976 42.8854 61.4902 39.2268 61.4902 39.2268C59.8512 41.7659 55.0439 42.4781 50.4561 43.0512C45.0512 43.7073 40.5463 44.4439 40.5463 49.0293C40.5463 52.7951 43.4805 54.8732 49.2268 54.7049C55.9927 54.5073 60.7024 54.861 61.3268 45.4342H61.3293Z" fill="#00433D"/>
+      </g>
+      <defs>
+        <clipPath id="clip0_8905_69806">
+          <rect width="351.22" height="80" fill="white"/>
+        </clipPath>
+      </defs>
+    </svg>
   </div>
+  
+ 
 
   <script>
     const copyBtn = document.getElementById('copyBtn');
@@ -296,6 +430,15 @@
     const skippedCount = document.getElementById('skippedCount');
     
     let isProcessing = false;
+    let hasCopiedText = false; // Track if text has been copied
+    let hasFrameSelected = false; // Track if a frame is currently selected
+    
+    // Initialize buttons as disabled until frame is selected
+    copyBtn.disabled = true;
+    pasteBtn.disabled = true;
+    
+    // Initialize clear button as hidden
+    clearBtn.style.display = 'none';
     
     copyBtn.onclick = () => sendMessage({type: 'COPY'});
     pasteBtn.onclick = () => sendMessage({type: 'PASTE'});
@@ -310,8 +453,10 @@
     
     function setProcessing(processing) {
       isProcessing = processing;
-      copyBtn.disabled = processing;
-      pasteBtn.disabled = processing;
+      
+      // Update button states based on processing state
+      copyBtn.disabled = processing || !hasFrameSelected;
+      pasteBtn.disabled = processing || !hasCopiedText;
       clearBtn.disabled = processing;
       
       if (processing) {
@@ -324,7 +469,11 @@
     }
     
     function updateStatus(message, className = 'info') {
-      status.textContent = message;
+      // Update only the status content, not the entire status div
+      const statusContent = status.querySelector('.status-content');
+      if (statusContent) {
+        statusContent.textContent = message;
+      }
       status.className = className;
     }
     
@@ -341,12 +490,38 @@
     
     function showStats(show) {
       stats.style.display = show ? 'flex' : 'none';
+      // Show/hide clear button based on stats visibility
+      if (show) {
+        clearBtn.style.display = 'block';
+        clearBtn.style.opacity = '1';
+      } else {
+        clearBtn.style.display = 'none';
+        clearBtn.style.opacity = '0';
+      }
     }
     
     function updateStats(copied, pasted, skipped) {
       copiedCount.textContent = copied || 0;
       pastedCount.textContent = pasted || 0;
       skippedCount.textContent = skipped || 0;
+    }
+    
+    function updateClearButtonVisibility() {
+      if (hasCopiedText) {
+        clearBtn.style.display = 'block';
+        clearBtn.style.opacity = '1';
+      } else {
+        clearBtn.style.display = 'none';
+        clearBtn.style.opacity = '0';
+      }
+    }
+    
+    // Function to update copy button state based on frame selection
+    function updateCopyButtonState(canCopy) {
+      hasFrameSelected = canCopy;
+      if (!isProcessing) {
+        copyBtn.disabled = !canCopy;
+      }
     }
     
     onmessage = (event) => {
@@ -356,11 +531,24 @@
       setProcessing(false);
       
       switch (msg.type) {
+        case 'FRAME_SELECTED':
+          updateStatus(`You have selected the frame "${msg.frameName}"`, 'info');
+          updateCopyButtonState(true); // Enable copy button when frame is selected
+          break;
+          
+        case 'NO_FRAME_SELECTED':
+          updateStatus('Select a frame and click "Copy" to start.', 'info');
+          updateCopyButtonState(false); // Disable copy button when no frame is selected
+          break;
+          
         case 'COPY_SUCCESS':
+          hasCopiedText = true; // Mark that text has been copied
+          pasteBtn.disabled = false; // Enable paste button
           updateStatus(`✓ Copied ${msg.textNodeCount} text nodes from "${msg.frameName}"`, 'success');
           showProgress(false);
           showStats(true);
           updateStats(msg.textNodeCount, 0, 0);
+          updateClearButtonVisibility(); // Ensure clear button is visible
           break;
           
         case 'PASTE_SUCCESS':
@@ -371,9 +559,12 @@
           break;
           
         case 'CLEAR_SUCCESS':
+          hasCopiedText = false; // Reset copied text state
+          pasteBtn.disabled = true; // Disable paste button again
           updateStatus('Copy data cleared. Select a frame to start.', 'info');
           showProgress(false);
           showStats(false);
+          updateClearButtonVisibility(); // Ensure clear button is hidden
           break;
           
         case 'PROGRESS':

@@ -48,6 +48,25 @@ interface FrameStructure {
 // Global storage for copy data
 let copyPayload: CopyPayload | null = null;
 
+// Function to check current selection and update UI feedback
+function updateSelectionFeedback(): void {
+  const selection = figma.currentPage.selection;
+  
+  if (selection.length === 1 && selection[0].type === "FRAME") {
+    const frame = selection[0] as FrameNode;
+    figma.ui.postMessage({
+      type: "FRAME_SELECTED",
+      frameName: frame.name,
+      canCopy: true
+    });
+  } else {
+    figma.ui.postMessage({
+      type: "NO_FRAME_SELECTED",
+      canCopy: false
+    });
+  }
+}
+
 // Enhanced font loading utility with progress reporting
 async function ensureFontsLoaded(textNodes: TextNode[], onProgress?: (percent: number) => void): Promise<void> {
   console.log("🔤 Loading fonts for", textNodes.length, "text nodes...");
@@ -270,7 +289,8 @@ async function mapTextNodes(
     const sourceItem = sourceItems[i];
     
     if (scores.length === 0) {
-      details.push(`⚠️ No suitable target found for: "${sourceItem.characters.substring(0, 30)}..."`);
+      const layerName = sourceItem.name || `Layer at path [${sourceItem.path.join(',')}]`;
+      details.push(`⚠️ No suitable target found: ${layerName} - "${sourceItem.characters.substring(0, 30)}..."`);
       skipped++;
       continue;
     }
@@ -285,7 +305,8 @@ async function mapTextNodes(
     }
     
     if (targetIndex === -1) {
-      details.push(`⚠️ All suitable targets already used for: "${sourceItem.characters.substring(0, 30)}..."`);
+      const layerName = sourceItem.name || `Layer at path [${sourceItem.path.join(',')}]`;
+      details.push(`⚠️ All suitable targets already used: ${layerName} - "${sourceItem.characters.substring(0, 30)}..."`);
       skipped++;
       continue;
     }
@@ -295,7 +316,8 @@ async function mapTextNodes(
     try {
       // Check if the node is locked or inaccessible
       if (targetNode.locked) {
-        details.push(`⚠️ Skipping locked text node: ${targetNode.name}`);
+        const layerName = sourceItem.name || `Layer at path [${sourceItem.path.join(',')}]`;
+        details.push(`⚠️ Locked layer cannot be edited: ${layerName} (target: ${targetNode.name})`);
         skipped++;
         continue;
       }
@@ -316,7 +338,8 @@ async function mapTextNodes(
       }
       
     } catch (error) {
-      details.push(`❌ Failed to map text: ${error}`);
+      const layerName = sourceItem.name || `Layer at path [${sourceItem.path.join(',')}]`;
+      details.push(`❌ Failed to update layer: ${layerName} - ${error}`);
       skipped++;
     }
   }
@@ -341,6 +364,37 @@ function calculatePathSimilarity(path1: number[], path2: number[]): number {
   }
   
   return similarity / Math.max(path1.length, path2.length);
+}
+
+// Helper function to find a node at a specific path in a frame
+function findNodeAtPath(frame: FrameNode, path: number[]): SceneNode | null {
+  if (path.length === 0) return frame;
+  
+  let currentNode: SceneNode = frame;
+  
+  for (const index of path) {
+    if ("children" in currentNode && currentNode.children[index]) {
+      currentNode = currentNode.children[index];
+    } else {
+      return null; // Path is invalid
+    }
+  }
+  
+  return currentNode;
+}
+
+// Helper function to find the parent frame of a node
+function findParentFrame(node: SceneNode): FrameNode | null {
+  let current = node.parent;
+  
+  while (current) {
+    if (current.type === "FRAME") {
+      return current as FrameNode;
+    }
+    current = current.parent;
+  }
+  
+  return null;
 }
 
 // Helper functions for data serialization
@@ -392,7 +446,15 @@ function deserializePayload(serializedPayload: SerializableCopyPayload): CopyPay
 
 // Enhanced message handlers with progress reporting
 console.log("🚀 Enhanced plugin starting...");
-figma.showUI(__html__, {width: 380, height: 280});
+figma.showUI(__html__, {width: 380, height: 380});
+
+// Add selection change listener to detect frame selection
+figma.on('selectionchange', () => {
+  updateSelectionFeedback();
+});
+
+// Initial feedback update
+updateSelectionFeedback();
 
 figma.ui.onmessage = async (msg) => {
   console.log("📨 Received message:", msg);
@@ -410,6 +472,14 @@ figma.ui.onmessage = async (msg) => {
       case "CLEAR":
         console.log("🗑️ Handling CLEAR request...");
         await handleClear();
+        break;
+      case "SELECT_SKIPPED_LAYER":
+        console.log("🎯 Handling SELECT_SKIPPED_LAYER request...");
+        await handleSelectSkippedLayer(msg.index, msg.layerName);
+        break;
+      case "FOCUS_VIEWPORT_ON_LAYER":
+        console.log("🔍 Handling FOCUS_VIEWPORT_ON_LAYER request...");
+        await handleFocusViewportOnLayer(msg.index, msg.layerName);
         break;
       default:
         console.log("⚠️ Unknown message type:", msg.type);
@@ -530,6 +600,268 @@ async function handlePaste(): Promise<void> {
   } catch (error) {
     console.error("❌ Enhanced paste operation failed:", error);
     throw error;
+  }
+}
+
+async function handleSelectSkippedLayer(index: number, layerName: string): Promise<void> {
+  console.log("🎯 Starting layer selection for:", layerName, "at index:", index);
+  
+  try {
+    if (!copyPayload) {
+      throw new Error("No copy data available");
+    }
+    
+    // Get the current page selection to find the target frame
+    const selection = figma.currentPage.selection;
+    if (selection.length !== 1 || selection[0].type !== "FRAME") {
+      throw new Error("Please select a target frame first");
+    }
+    
+    const targetFrame = selection[0] as FrameNode;
+    const sourceItem = copyPayload.items[index];
+    
+    if (!sourceItem) {
+      throw new Error("Invalid layer index");
+    }
+    
+    // Find the node at the specified path in the target frame
+    const targetNode = findNodeAtPath(targetFrame, sourceItem.path);
+    
+    if (!targetNode) {
+      throw new Error(`Layer not found at path: [${sourceItem.path.join(',')}]`);
+    }
+    
+    // Select the node and focus the viewport
+    figma.currentPage.selection = [targetNode];
+    
+    // Ensure the selection is visible by briefly selecting and deselecting
+    setTimeout(() => {
+      // Re-select to ensure the selection is properly highlighted
+      figma.currentPage.selection = [targetNode];
+    }, 100);
+    
+    // Enhanced viewport focusing with multiple strategies
+    try {
+      console.log("🎯 Starting enhanced viewport focusing...");
+      
+      // Notify UI that viewport focusing is starting
+      figma.ui.postMessage({
+        type: "VIEWPORT_FOCUSING"
+      });
+      
+      // Log the node's position for debugging
+      const nodeBounds = targetNode.absoluteBoundingBox;
+      if (nodeBounds) {
+        console.log("📍 Node bounds:", {
+          x: nodeBounds.x,
+          y: nodeBounds.y,
+          width: nodeBounds.width,
+          height: nodeBounds.height
+        });
+      }
+      
+      // Strategy 1: Direct viewport focusing
+      console.log("🎯 Strategy 1: Direct viewport focus...");
+      figma.viewport.scrollAndZoomIntoView([targetNode]);
+      console.log("✅ Direct viewport focus completed");
+      
+      // Strategy 2: Check if node is visible and refocus if needed
+      if (nodeBounds) {
+        const centerX = nodeBounds.x + nodeBounds.width / 2;
+        const centerY = nodeBounds.y + nodeBounds.height / 2;
+        const viewportCenter = figma.viewport.center;
+        
+        console.log("🎯 Viewport center:", viewportCenter);
+        console.log("🎯 Node center:", { x: centerX, y: centerY });
+        
+        // Calculate distance from viewport center
+        const distanceX = Math.abs(centerX - viewportCenter.x);
+        const distanceY = Math.abs(centerY - viewportCenter.y);
+        const tolerance = 150; // Increased tolerance for better detection
+        
+        if (distanceX > tolerance || distanceY > tolerance) {
+          console.log("🔄 Node is outside viewport tolerance, using enhanced focusing...");
+          
+          // Strategy 3: Enhanced focusing with parent frame context
+          try {
+            const parentFrame = findParentFrame(targetNode);
+            if (parentFrame && parentFrame !== targetNode) {
+              console.log("🔄 Strategy 3: Focusing on parent frame first...");
+              figma.viewport.scrollAndZoomIntoView([parentFrame]);
+              
+              // Wait a bit, then focus on the specific node
+              setTimeout(() => {
+                try {
+                  figma.viewport.scrollAndZoomIntoView([targetNode]);
+                  console.log("✅ Enhanced focusing with parent frame completed");
+                } catch (enhancedError) {
+                  console.log("⚠️ Enhanced focusing failed:", enhancedError);
+                }
+              }, 300);
+            }
+          } catch (parentError) {
+            console.log("⚠️ Parent frame focusing failed:", parentError);
+          }
+          
+          // Strategy 4: Multiple rapid focus attempts
+          console.log("🔄 Strategy 4: Multiple rapid focus attempts...");
+          for (let i = 0; i < 3; i++) {
+            try {
+              figma.viewport.scrollAndZoomIntoView([targetNode]);
+              console.log(`✅ Rapid focus attempt ${i + 1} completed`);
+            } catch (rapidError) {
+              console.log(`⚠️ Rapid focus attempt ${i + 1} failed:`, rapidError);
+            }
+          }
+        } else {
+          console.log("✅ Node is already within viewport tolerance");
+        }
+      }
+      
+      // Strategy 5: Final verification and adjustment
+      setTimeout(() => {
+        try {
+          console.log("🔄 Strategy 5: Final verification and adjustment...");
+          figma.viewport.scrollAndZoomIntoView([targetNode]);
+          console.log("✅ Final viewport adjustment completed");
+          
+          // Notify UI that viewport focusing is complete
+          figma.ui.postMessage({
+            type: "VIEWPORT_SUCCESS"
+          });
+          
+        } catch (finalError) {
+          console.log("⚠️ Final viewport adjustment failed:", finalError);
+        }
+      }, 500);
+      
+    } catch (viewportError) {
+      console.log("⚠️ Primary viewport focusing failed:", viewportError);
+      
+      // Emergency fallback: try to focus on parent frame
+      try {
+        console.log("🚨 Emergency fallback: focusing on parent frame...");
+        const parentFrame = findParentFrame(targetNode);
+        if (parentFrame && parentFrame !== targetNode) {
+          figma.viewport.scrollAndZoomIntoView([parentFrame]);
+          console.log("✅ Emergency fallback completed");
+        }
+      } catch (emergencyError) {
+        console.log("🚨 Emergency fallback also failed:", emergencyError);
+      }
+    }
+    
+    // Show a notification to the user with more helpful information
+    const layerType = targetNode.type.toLowerCase();
+    figma.notify(`Selected ${layerType}: "${targetNode.name || layerName}" - Check the canvas for the highlighted layer`, {timeout: 3000});
+    
+    // Show success message
+    figma.ui.postMessage({
+      type: "SELECTION_SUCCESS",
+      layerName: targetNode.name || layerName
+    });
+    
+    console.log("✅ Layer selection completed successfully");
+  } catch (error) {
+    console.error("❌ Layer selection failed:", error);
+    figma.ui.postMessage({
+      type: "SELECTION_ERROR",
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+async function handleFocusViewportOnLayer(index: number, layerName: string): Promise<void> {
+  console.log("🔍 Starting viewport focus for:", layerName, "at index:", index);
+  
+  try {
+    if (!copyPayload) {
+      throw new Error("No copy data available");
+    }
+    
+    // Get the current page selection to find the target frame
+    const selection = figma.currentPage.selection;
+    if (selection.length !== 1 || selection[0].type !== "FRAME") {
+      throw new Error("Please select a target frame first");
+    }
+    
+    const targetFrame = selection[0] as FrameNode;
+    const sourceItem = copyPayload.items[index];
+    
+    if (!sourceItem) {
+      throw new Error("Invalid layer index");
+    }
+    
+    // Find the node at the specified path in the target frame
+    const targetNode = findNodeAtPath(targetFrame, sourceItem.path);
+    
+    if (!targetNode) {
+      throw new Error(`Layer not found at path: [${sourceItem.path.join(',')}]`);
+    }
+    
+    // Focus viewport without changing selection
+    try {
+      console.log("🔍 Focusing viewport on layer without changing selection...");
+      
+      // Notify UI that viewport focusing is starting
+      figma.ui.postMessage({
+        type: "VIEWPORT_FOCUSING"
+      });
+      
+      // Aggressive viewport focusing
+      figma.viewport.scrollAndZoomIntoView([targetNode]);
+      
+      // Wait and try again for better results
+      setTimeout(() => {
+        try {
+          figma.viewport.scrollAndZoomIntoView([targetNode]);
+          console.log("✅ Secondary viewport focus completed");
+        } catch (secondaryError) {
+          console.log("⚠️ Secondary viewport focus failed:", secondaryError);
+        }
+      }, 200);
+      
+      // Final attempt
+      setTimeout(() => {
+        try {
+          figma.viewport.scrollAndZoomIntoView([targetNode]);
+          console.log("✅ Final viewport focus completed");
+          
+          // Notify UI that viewport focusing is complete
+          figma.ui.postMessage({
+            type: "VIEWPORT_SUCCESS"
+          });
+          
+        } catch (finalError) {
+          console.log("⚠️ Final viewport focus failed:", finalError);
+        }
+      }, 500);
+      
+    } catch (viewportError) {
+      console.log("⚠️ Viewport focusing failed:", viewportError);
+      
+      // Try parent frame as fallback
+      try {
+        const parentFrame = findParentFrame(targetNode);
+        if (parentFrame && parentFrame !== targetNode) {
+          figma.viewport.scrollAndZoomIntoView([parentFrame]);
+          console.log("✅ Fallback to parent frame completed");
+        }
+      } catch (fallbackError) {
+        console.log("⚠️ Fallback to parent frame also failed:", fallbackError);
+      }
+    }
+    
+    // Show notification
+    figma.notify(`Viewport focused on: ${targetNode.name || layerName}`, {timeout: 2000});
+    
+    console.log("✅ Viewport focusing completed successfully");
+  } catch (error) {
+    console.error("❌ Viewport focusing failed:", error);
+    figma.ui.postMessage({
+      type: "SELECTION_ERROR",
+      message: error instanceof Error ? error.message : String(error)
+    });
   }
 }
 

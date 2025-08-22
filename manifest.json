@@ -1,5 +1,5 @@
 {
-  "name": "Copy Text Between Frames",
+  "name": "Move.Text",
   "id": "copy-text-between-frames",
   "api": "1.0.0",
   "main": "code.js",
