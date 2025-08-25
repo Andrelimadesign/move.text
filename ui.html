@@ -205,11 +205,12 @@
       font-size: 12px;
       height: auto;
       margin: 0;
-      padding: 3px 0;
+      padding: 8px 16px;
       width: auto;
-      display: block;
+      display: inline-block;
       text-align: center;
       font-weight: 500;
+      cursor: pointer;
     }
     
     #clearBtn:hover {
@@ -289,7 +290,7 @@
     .stats {
       display: flex;
       gap: var(--spacing-md);
-      margin: var(--spacing-sm) 0;
+      margin: 0;
       font-size: 12px;
       color: var(--text-secondary);
       justify-content: center;
@@ -300,6 +301,8 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
+      margin: 0;
+      padding: 0;
     }
     
     .stat-value {
@@ -334,6 +337,11 @@
     .tooltip:hover::after {
       opacity: 1;
     }
+    
+    .clear-section {
+      text-align: center;
+      margin-top: var(--spacing-xs);
+    }
   </style>
 </head>
 <body>
@@ -359,7 +367,13 @@
     <p>2- Select target frame → click "Paste into new frame"</p>
   </div>
   
-  <div id="status" class="info">
+
+  
+  <div class="button-group">
+    <button id="copyBtn" data-tooltip="Copy text from selected frame">
+      Copy text from frame
+    </button>
+    
     <div class="stats" id="stats" style="display: none;">
       <div class="stat-item">
         <div class="stat-value" id="copiedCount">0</div>
@@ -375,18 +389,15 @@
       </div>
     </div>
     
-    <button id="clearBtn" data-tooltip="Clear stored copy data">
-      Clear current selection
-    </button>
-  </div>
-  
-  <div class="button-group">
-    <button id="copyBtn" data-tooltip="Copy text from selected frame">
-      Copy text from frame
-    </button>
     <button id="pasteBtn" data-tooltip="Paste text into selected frame">
       Paste into new frame
     </button>
+    
+    <div class="clear-section" id="clearSection" style="display: none;">
+      <button id="clearBtn" data-tooltip="Clear stored copy data">
+        Clear current selection
+      </button>
+    </div>
   </div>
   
   <div class="progress-bar" id="progressBar" style="display: none;">
@@ -419,10 +430,10 @@
     const copyBtn = document.getElementById('copyBtn');
     const pasteBtn = document.getElementById('pasteBtn');
     const clearBtn = document.getElementById('clearBtn');
-    const status = document.getElementById('status');
     const progressBar = document.getElementById('progressBar');
     const progressFill = document.getElementById('progressFill');
     const stats = document.getElementById('stats');
+    const clearSection = document.getElementById('clearSection');
     const copiedCount = document.getElementById('copiedCount');
     const pastedCount = document.getElementById('pastedCount');
     const skippedCount = document.getElementById('skippedCount');
@@ -435,8 +446,8 @@
     copyBtn.disabled = true;
     pasteBtn.disabled = true;
     
-    // Initialize clear button as hidden
-    clearBtn.style.display = 'none';
+    // Initialize clear section as hidden
+    clearSection.style.display = 'none';
     
     copyBtn.onclick = () => sendMessage({type: 'COPY'});
     pasteBtn.onclick = () => sendMessage({type: 'PASTE'});
@@ -453,7 +464,7 @@
       isProcessing = processing;
       
       // Update button states based on processing state
-      copyBtn.disabled = processing || !hasFrameSelected;
+      copyBtn.disabled = processing || !hasFrameSelected || hasCopiedText;
       pasteBtn.disabled = processing || !hasCopiedText;
       clearBtn.disabled = processing;
       
@@ -467,12 +478,7 @@
     }
     
     function updateStatus(message, className = 'info') {
-      // Update only the status content, not the entire status div
-      const statusContent = status.querySelector('.status-content');
-      if (statusContent) {
-        statusContent.textContent = message;
-      }
-      status.className = className;
+      // Status updates are no longer needed
     }
     
     function showProgress(show) {
@@ -488,13 +494,13 @@
     
     function showStats(show) {
       stats.style.display = show ? 'flex' : 'none';
-      // Show/hide clear button based on stats visibility
+      // Show/hide clear section based on stats visibility
       if (show) {
-        clearBtn.style.display = 'block';
-        clearBtn.style.opacity = '1';
+        clearSection.style.display = 'block';
+        clearSection.style.opacity = '1';
       } else {
-        clearBtn.style.display = 'none';
-        clearBtn.style.opacity = '0';
+        clearSection.style.display = 'none';
+        clearSection.style.opacity = '0';
       }
     }
     
@@ -506,11 +512,13 @@
     
     function updateClearButtonVisibility() {
       if (hasCopiedText) {
-        clearBtn.style.display = 'block';
-        clearBtn.style.opacity = '1';
+        clearSection.style.display = 'block';
+        clearSection.style.opacity = '1';
+        console.log('Clear button should be visible');
       } else {
-        clearBtn.style.display = 'none';
-        clearBtn.style.opacity = '0';
+        clearSection.style.display = 'none';
+        clearSection.style.opacity = '0';
+        console.log('Clear button should be hidden');
       }
     }
     
@@ -518,7 +526,7 @@
     function updateCopyButtonState(canCopy) {
       hasFrameSelected = canCopy;
       if (!isProcessing) {
-        copyBtn.disabled = !canCopy;
+        copyBtn.disabled = !canCopy || hasCopiedText;
       }
     }
     
@@ -530,18 +538,17 @@
       
       switch (msg.type) {
         case 'FRAME_SELECTED':
-          updateStatus(`You have selected the frame "${msg.frameName}"`, 'info');
           updateCopyButtonState(true); // Enable copy button when frame is selected
           break;
           
         case 'NO_FRAME_SELECTED':
-          updateStatus('Select a frame and click "Copy" to start.', 'info');
           updateCopyButtonState(false); // Disable copy button when no frame is selected
           break;
           
         case 'COPY_SUCCESS':
           hasCopiedText = true; // Mark that text has been copied
           pasteBtn.disabled = false; // Enable paste button
+          copyBtn.disabled = true; // Disable copy button after successful copy
           updateStatus(`✓ Copied ${msg.textNodeCount} text nodes from "${msg.frameName}"`, 'success');
           showProgress(false);
           showStats(true);
@@ -559,6 +566,7 @@
         case 'CLEAR_SUCCESS':
           hasCopiedText = false; // Reset copied text state
           pasteBtn.disabled = true; // Disable paste button again
+          copyBtn.disabled = false; // Re-enable copy button after clearing
           updateStatus('Copy data cleared. Select a frame to start.', 'info');
           showProgress(false);
           showStats(false);
