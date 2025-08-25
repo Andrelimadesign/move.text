@@ -2,27 +2,55 @@
 <html>
 <head>
   <style>
+    :root {
+      /* Color Palette */
+      --primary-brand: #00433D;
+      --primary-hover: #00332D;
+      --background: #f7f7f7;
+      --container-bg: white;
+      --status-bg: #f8f9fa;
+      --success-bg: #F5FBF5;
+      --text-primary: #00433D;
+      --text-secondary: #666666;
+      --success-icon: #9EB84C;
+      --error-icon: #EC8E7B;
+      --warning-icon: #ff9800;
+      --accent-color: #18a0fb;
+      
+      /* Typography */
+      --font-primary: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'Monaco', 'Ubuntu Mono', monospace;
+      
+      /* Spacing */
+      --spacing-xs: 8px;
+      --spacing-sm: 12px;
+      --spacing-md: 16px;
+      --spacing-lg: 20px;
+      --spacing-xl: 24px;
+    }
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 12px;
-      padding: 12px;
+      font-family: var(--font-primary);
+      font-size: 14px;
+      font-weight: 500;
+      padding: var(--spacing-lg);
       margin: 0;
-      background: #ffffff;
-      color: #333333;
+      background: var(--background);
+      color: var(--text-primary);
       position: relative;
       min-height: 100vh;
       box-sizing: border-box;
+      max-width: 360px;
+      margin: 0 auto;
     }
-    
-
     
     .app-header {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      margin-bottom: 10px;
-      padding: 16px 0;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
+      padding: var(--spacing-lg) 0;
     }
     
     .app-icon {
@@ -40,16 +68,16 @@
     }
     
     .app-name {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: #00433D;
+      font-family: var(--font-primary);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
       letter-spacing: -0.02em;
     }
     
     .logo {
       text-align: right;
-      margin: 20px 0 0 0;
+      margin: var(--spacing-lg) 0 0 0;
       display: flex;
       justify-content: flex-end;
       align-items: center;
@@ -63,82 +91,62 @@
     
     .instructions {
       text-align: center;
-      margin: 0 0 16px 0;
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 400;
-      color: #00433D;
+      margin: 0 0 var(--spacing-md) 0;
+      font-family: var(--font-primary);
+      font-weight: 500;
+      color: var(--text-primary);
       line-height: 1.4;
     }
     
     .instructions p {
       margin: 3px 0;
-      font-size: 11px;
+      font-size: 12px;
+      color: var(--text-secondary);
     }
     
     h3 {
-      margin: 0 0 16px 0;
+      margin: 0 0 var(--spacing-md) 0;
       font-size: 14px;
       font-weight: 600;
-      color: #000000;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--spacing-xs);
     }
-    
-
     
     button {
       width: 100%;
-      height: 32px;
-      margin-bottom: 6px;
-      border: 1px solid #e5e5e5;
-      border-radius: 16px;
-      background: #ffffff;
+      padding: var(--spacing-sm) var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+      border: none;
+      border-radius: 0px;
+      background: var(--primary-brand);
+      color: var(--success-bg);
       cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: all 0.2s ease;
+      font-family: var(--font-primary);
+      font-size: 14px;
+      font-weight: bold;
+      transition: background-color 0.2s;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: var(--spacing-xs);
       position: relative;
       overflow: hidden;
     }
     
     button:hover {
-      background: #f8f8f8;
-      border-color: #d0d0d0;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: var(--primary-hover);
     }
     
     button:active {
-      background: #f0f0f0;
-      transform: translateY(0);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      background: var(--primary-hover);
     }
     
     button:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
-      background: #f5f5f5;
-      transform: none;
-      box-shadow: none;
-    }
-    
-    #clearBtn:active {
-      background: transparent;
-      transform: none;
-      box-shadow: none;
-    }
-    
-    #clearBtn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      background: transparent;
-      transform: none;
-      box-shadow: none;
+      background: var(--primary-brand);
     }
     
     .loading {
@@ -154,7 +162,7 @@
       border-top: 2px solid currentColor;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      right: 12px;
+      right: var(--spacing-sm);
     }
     
     @keyframes spin {
@@ -163,110 +171,108 @@
     }
     
     #copyBtn {
-      background: #ffffff;
-      color: #00433D;
-      border: 1px solid #00433D;
+      background: var(--primary-brand);
+      color: var(--success-bg);
+      border: none;
     }
     
     #copyBtn:hover {
-      background: #f5f5f5;
-      border-color: #003329;
+      background: var(--primary-hover);
     }
     
     #copyBtn:disabled {
-      background: #f8f8f8;
-      color: #999999;
-      border-color: #e0e0e0;
+      background: var(--primary-brand);
+      color: var(--success-bg);
+      opacity: 0.6;
       cursor: not-allowed;
     }
     
     #pasteBtn {
-      background: #00433D;
-      color: white;
-      border-color: #00433D;
+      background: var(--primary-brand);
+      color: var(--success-bg);
+      border: none;
     }
     
     #pasteBtn:hover {
-      background: #003329;
-      border-color: #003329;
+      background: var(--primary-hover);
     }
     
     #clearBtn {
       background: transparent;
-      color: #666666;
+      color: var(--text-secondary);
       border: none;
       text-decoration: underline;
-      font-size: 11px;
+      font-size: 12px;
       height: auto;
       margin: 0;
       padding: 3px 0;
       width: auto;
       display: block;
       text-align: center;
+      font-weight: 500;
     }
     
     #clearBtn:hover {
       background: transparent;
-      color: #333333;
+      color: var(--text-primary);
       text-decoration: none;
-      transform: none;
-      box-shadow: none;
     }
     
     .button-group {
       display: flex;
-      gap: 8px;
-      margin-bottom: 10px;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
     }
     
     .button-group button {
-      flex: 1;
+      width: 100%;
       margin-bottom: 0;
     }
     
     #status {
-      margin-top: 12px;
-      padding: 16px;
-      background: #f8f9fa;
-      border-radius: 16px;
-      font-size: 11px;
-      border-left: 4px solid #e9ecef;
+      margin-top: var(--spacing-sm);
+      padding: 0;
+      background: transparent;
+      border-radius: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #00433D;
       line-height: 1.4;
       transition: all 0.3s ease;
     }
     
     .status-content {
-      margin-bottom: 12px;
+      margin-bottom: var(--spacing-sm);
     }
     
     .error {
-      color: #d73027;
-      background: #fff5f5;
-      border-left-color: #fc8181;
+      color: #c62828;
+      background: transparent;
+      border: none;
     }
     
     .success {
-      color: #1a7431;
-      background: #f0fff4;
-      border-left-color: #68d391;
+      color: var(--text-primary);
+      background: transparent;
     }
     
     .info {
-      color: #8E4EC6;
-      background: #ebf8ff;
-      border-left-color: #63b3ed;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
     }
     
     .warning {
-      color: #d69e2e;
-      background: #fffbeb;
-      border-left-color: #f6e05e;
+      color: var(--warning-icon);
+      background: transparent;
+      border: none;
     }
     
     .progress-bar {
       width: 100%;
       height: 4px;
-      background: #e9ecef;
+      background: #e1e5e9;
       border-radius: 2px;
       margin-top: 6px;
       overflow: hidden;
@@ -274,7 +280,7 @@
     
     .progress-fill {
       height: 100%;
-      background: #00433D;
+      background: var(--accent-color);
       border-radius: 2px;
       transition: width 0.3s ease;
       width: 0%;
@@ -282,10 +288,10 @@
     
     .stats {
       display: flex;
-      gap: 16px;
-      margin: 12px 0;
-      font-size: 10px;
-      color: #666;
+      gap: var(--spacing-md);
+      margin: var(--spacing-sm) 0;
+      font-size: 12px;
+      color: var(--text-secondary);
       justify-content: center;
     }
     
@@ -298,8 +304,8 @@
     
     .stat-value {
       font-weight: 600;
-      font-size: 12px;
-      color: #333;
+      font-size: 14px;
+      color: var(--text-primary);
     }
     
     .tooltip {
@@ -328,8 +334,6 @@
     .tooltip:hover::after {
       opacity: 1;
     }
-    
-
   </style>
 </head>
 <body>
@@ -352,23 +356,10 @@
   
   <div class="instructions">
     <p>1- Select frame → click "Copy text from frame"</p>
-    <p>2- Select target frame → click "Paste"</p>
-  </div>
-  
-  <div class="button-group">
-    <button id="copyBtn" data-tooltip="Copy text from selected frame">
-      Copy text from frame
-    </button>
-    <button id="pasteBtn" data-tooltip="Paste text into selected frame">
-      Paste
-    </button>
+    <p>2- Select target frame → click "Paste into new frame"</p>
   </div>
   
   <div id="status" class="info">
-    <div class="status-content">
-      Select a frame and click "Copy" to start.
-    </div>
-    
     <div class="stats" id="stats" style="display: none;">
       <div class="stat-item">
         <div class="stat-value" id="copiedCount">0</div>
@@ -389,7 +380,16 @@
     </button>
   </div>
   
-    <div class="progress-bar" id="progressBar" style="display: none;">
+  <div class="button-group">
+    <button id="copyBtn" data-tooltip="Copy text from selected frame">
+      Copy text from frame
+    </button>
+    <button id="pasteBtn" data-tooltip="Paste text into selected frame">
+      Paste into new frame
+    </button>
+  </div>
+  
+  <div class="progress-bar" id="progressBar" style="display: none;">
     <div class="progress-fill" id="progressFill"></div>
   </div>
   
@@ -415,8 +415,6 @@
     </svg>
   </div>
   
- 
-
   <script>
     const copyBtn = document.getElementById('copyBtn');
     const pasteBtn = document.getElementById('pasteBtn');
